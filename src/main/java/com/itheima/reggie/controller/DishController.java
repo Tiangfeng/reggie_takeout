@@ -12,11 +12,13 @@ import com.itheima.reggie.service.DishFlavorService;
 import com.itheima.reggie.service.DishService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RestController
@@ -31,6 +33,9 @@ public class DishController {
 
     @Resource
     private CategoryService categoryService;
+
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
 
     // 新增菜品
     @PostMapping
@@ -105,6 +110,14 @@ public class DishController {
 
     @GetMapping("/list")
     public R<List<DishDto>> list(Dish dish) {
+        // 检查数据是否已经在缓存中。
+        String key = "dish_" + dish.getCategoryId() + "_" + dish.getStatus();
+        List<DishDto> dishDtoList = (List<DishDto>) redisTemplate.opsForValue().get(key);
+
+        if (dishDtoList != null) {
+            return R.success(dishDtoList);
+        }
+
         LambdaQueryWrapper<Dish> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(dish.getCategoryId() != null, Dish::getCategoryId, dish.getCategoryId());
         // 查询状态是1的。
@@ -113,9 +126,9 @@ public class DishController {
 
         List<Dish> dishList = dishService.list(queryWrapper);
 
-        List<DishDto> dishDtoList = new ArrayList<>();
+        dishDtoList = new ArrayList<>();
 
-        dishList.forEach(d -> {
+        for (Dish d : dishList) {
             DishDto dishDto = new DishDto();
             BeanUtils.copyProperties(d, dishDto);
             Long id = d.getId();
@@ -124,7 +137,9 @@ public class DishController {
             List<DishFlavor> dishFlavorList = dishFlavorService.list(q);
             dishDto.setFlavors(dishFlavorList);
             dishDtoList.add(dishDto);
-        });
+        }
+
+        redisTemplate.opsForValue().set(key, dishDtoList, 60, TimeUnit.MINUTES);
 
         return R.success(dishDtoList);
     }

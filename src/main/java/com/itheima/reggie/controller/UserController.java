@@ -7,6 +7,7 @@ import com.itheima.reggie.service.UserService;
 import com.itheima.reggie.util.SMSUtils;
 import com.itheima.reggie.util.ValidateCodeUtils;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -18,6 +19,9 @@ import java.util.Map;
 public class UserController {
     @Resource
     private UserService userService;
+
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
 
     @PostMapping("/sendMsg")
     public R<String> setMsg(@RequestBody User user, HttpSession session) {
