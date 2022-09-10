@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -43,6 +44,10 @@ public class DishController {
         log.info("dishDto: {}", dishDto);
 
         dishService.saveWithFlavor(dishDto);
+
+        String key = "dish_" + dishDto.getCategoryId() + "_1";
+
+        redisTemplate.delete(key);
 
         return R.success("新增菜品成功。");
     }
@@ -91,6 +96,10 @@ public class DishController {
         log.info(dishDto.toString());
 
         dishService.updateWithFlavor(dishDto);
+
+        String key = "dish_" + dishDto.getCategoryId() + "_1";
+
+        redisTemplate.delete(key);
 
         return R.success("修改成功！");
     }
